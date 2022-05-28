@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"strings"
+	"sync"
+	"time"
 )
 
 const conferenceTickets = 50
@@ -17,44 +19,43 @@ type UserData struct {
 	numberOfTickets uint
 }
 
+var wg = sync.WaitGroup{}
+
 func main() {
 
 	greetUsers()
-	
-	
-	for {
-		//ask user for their username
-		
-		firstName, lastName, emailId, userTickets := getUserInput()
-		
-		isValidEmail, isValidName, isValidTickets := validateUserInput(firstName,lastName,emailId,userTickets)
+	for {	
+	firstName, lastName, emailId, userTickets := getUserInput()
+	isValidEmail, isValidName, isValidTickets := validateUserInput(firstName,lastName,emailId,userTickets)
 
-		if isValidEmail && isValidName && isValidTickets {
+	if isValidEmail && isValidName && isValidTickets {
 
-			bookTicket(userTickets,firstName,lastName,emailId)
-			
-			firstNames := getFirstNames()
-			
-			fmt.Printf("FirstNames of booking are:  %v\n",firstNames)
-	
-			noTickets := remaningTickets == 0
-			if noTickets {
-				fmt.Println("Our Conference is booked out. Come back next year!!")
-				break
-			}
-		}else { 
-			if !isValidEmail {
-				fmt.Println("Please Enter a valid Email")
-			}
-			if !isValidName {
-				fmt.Println("Please Enter a valid Name")
-			}
-			if !isValidTickets {
-				fmt.Printf("Sorry Only %v Tickets are available.\n", remaningTickets)
-			}
+		bookTicket(userTickets,firstName,lastName,emailId)
+
+		wg.Add(1) //adds one counter of threads
+		go sendTicket(userTickets,firstName,lastName,emailId)
+		firstNames := getFirstNames()
+		
+		fmt.Printf("FirstNames of booking are:  %v\n",firstNames)
+
+		noTickets := remaningTickets == 0
+		if noTickets {
+			fmt.Println("Our Conference is booked out. Come back next year!!")
+			break
 		}
-		
+	}else { 
+		if !isValidEmail {
+			fmt.Println("Please Enter a valid Email")
+		}
+		if !isValidName {
+			fmt.Println("Please Enter a valid Name")
+		}
+		if !isValidTickets {
+			fmt.Printf("Sorry Only %v Tickets are available.\n", remaningTickets)
+		}
 	}
+}
+wg.Wait() //tells to wait till threads are completed
 }
 func greetUsers() {
 	fmt.Printf("Welcome to %v booking application.\n",conferenceName)
@@ -118,4 +119,12 @@ func bookTicket(userTickets uint,firstName string,lastName string,emailId string
 	fmt.Printf("List of bookings is %v\n",userData)
 	fmt.Printf("Thank you %v %v for booking %v tickets. You will receive a conformation email at %v.\n",firstName,lastName,userTickets,emailId)
 	fmt.Printf("We have %v tickets left now for %v, Hurry up!!\n",remaningTickets,conferenceName)
+}
+func sendTicket(userTickets uint,firstName string,lastName string,emailId string) {
+	time.Sleep(10 * time.Second)
+	var ticket = fmt.Sprintf("%v tickets for %v %v",userTickets,firstName,lastName)
+	fmt.Println("######################################")
+	fmt.Printf("Sending ticket:\n %v \nto email address %v\n",ticket,emailId)
+	fmt.Println("######################################") 
+	wg.Done()//decrements the add counter for threads
 }
